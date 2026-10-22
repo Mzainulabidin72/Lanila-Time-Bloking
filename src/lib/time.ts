@@ -10,3 +10,6 @@ export const findConflicts=(blocks:Block[],c:Pick<Block,'id'|'date'|'start'|'end
   blocks.filter(b=>b.id!==c.id&&b.date===c.date&&toMin(b.start)<toMin(c.end)&&toMin(c.start)<toMin(b.end))
 export const remainingMs=(endsAt:number,now=Date.now())=>Math.max(0,endsAt-now)
 export const todayStr=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+export const fmt=(m:number)=>`${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`
+const ds=(x:Date)=>`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`
+export function weekDates(d:string){const [y,m,da]=d.split('-').map(Number);const off=(new Date(y,m-1,da).getDay()+6)%7;return Array.from({length:7},(_,i)=>ds(new Date(y,m-1,da-off+i)))}
