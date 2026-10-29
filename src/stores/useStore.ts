@@ -3,35 +3,39 @@ import {persist,createJSONStorage,StateStorage} from 'zustand/middleware'
 import {get,set,del} from 'idb-keyval'
 import type {Block} from '../lib/time'
 import {remote} from '../repositories/remote'
-export interface Task{id:string;title:string;status:'inbox'|'todo'|'doing'|'done';priority:'low'|'mid'|'high';est:number;due?:string}
-export interface Session{id:string;at:number;minutes:number}
-export interface Focus{sessionId:string|null;endsAt:number|null;pausedLeft:number|null;minutes:number;sessions:Session[]}
+import {FocusState,SessionType,FocusSession,DEFAULT_SETTINGS,FocusSettings,startActive,remainingMs,completeIfDue,endEarly,sanitizeActive,legacySession} from '../lib/focusTimer'
+export interface Task{id:string;title:string;status:'inbox'|'todo'|'doing'|'done';priority:'low'|'mid'|'high';est:number;due?:string;description?:string;notes?:string;createdAt?:number}
+export interface Prefs{startHour:number;endHour:number}
+export type Focus=FocusState
 const idb:StateStorage={getItem:async k=>(await get(k))??null,setItem:(k,v)=>set(k,v),removeItem:k=>del(k)}
-const F0:Focus={sessionId:null,endsAt:null,pausedLeft:null,minutes:25,sessions:[]}
-interface S{blocks:Block[];tasks:Task[];dark:boolean;focus:Focus
- setData:(d:{blocks:Block[];tasks:Task[];sessions?:Session[]})=>void;clearAll:()=>void
+const F0:Focus={active:null,summary:null,sessions:[],settings:DEFAULT_SETTINGS}
+interface S{blocks:Block[];tasks:Task[];focus:Focus;prefs:Prefs
+ setPrefs:(p:Prefs)=>void;setData:(d:{blocks:Block[];tasks:Task[];sessions?:FocusSession[]})=>void;clearAll:()=>void
  addBlock:(b:Block)=>void;updateBlock:(b:Block)=>void;delBlock:(id:string)=>void;toggleBlock:(id:string)=>void
- addTask:(t:Task)=>void;setTask:(id:string,p:Partial<Task>)=>void;delTask:(id:string)=>void;toggleDark:()=>void
- startFocus:(m:number)=>void;pauseFocus:()=>void;resumeFocus:()=>void;stopFocus:()=>void}
+ addTask:(t:Task)=>void;setTask:(id:string,p:Partial<Task>)=>void;delTask:(id:string)=>void
+ startSession:(o:{type:SessionType;taskId?:string;objective?:string})=>void;pauseFocus:()=>void;resumeFocus:()=>void;resetFocus:()=>void
+ endSession:()=>{recorded:FocusSession|null;elapsedSec:number}|null;completeActive:()=>FocusSession|null;dismissSummary:()=>void;setFocusSettings:(p:Partial<FocusSettings>)=>void}
 export const useStore=create<S>()(persist((s,g)=>({
- blocks:[],tasks:[],dark:false,focus:F0,
+ blocks:[],tasks:[],focus:F0,prefs:{startHour:6,endHour:22},
+ setPrefs:p=>s({prefs:p}),
  setData:d=>s(st=>({blocks:d.blocks,tasks:d.tasks,focus:d.sessions?{...st.focus,sessions:d.sessions}:st.focus})),
- clearAll:()=>s({blocks:[],tasks:[],focus:F0}),
- addBlock:b=>{s(st=>({blocks:[...st.blocks,b]}));remote.upsertBlock(b)},
+ clearAll:()=>s(st=>({blocks:[],tasks:[],focus:{...F0,settings:st.focus.settings}})),
+ addBlock:b=>{s(st=>({blocks:st.blocks.some(x=>x.id===b.id)?st.blocks.map(x=>x.id===b.id?b:x):[...st.blocks,b]}));remote.upsertBlock(b)}, // idempotent: retrying with the same id never duplicates
  updateBlock:b=>{s(st=>({blocks:st.blocks.map(x=>x.id===b.id?b:x)}));remote.upsertBlock(b)},
  delBlock:id=>{s(st=>({blocks:st.blocks.filter(b=>b.id!==id)}));remote.deleteBlock(id)},
  toggleBlock:id=>{s(st=>({blocks:st.blocks.map(b=>b.id===id?{...b,done:!b.done}:b)}));const nb=g().blocks.find(b=>b.id===id);if(nb)remote.upsertBlock(nb)},
- addTask:t=>{s(st=>({tasks:[...st.tasks,t]}));remote.upsertTask(t)},
+ addTask:t=>{const nt={...t,createdAt:t.createdAt??Date.now()};s(st=>({tasks:st.tasks.some(x=>x.id===nt.id)?st.tasks.map(x=>x.id===nt.id?nt:x):[...st.tasks,nt]}));remote.upsertTask(nt)},
  setTask:(id,p)=>{s(st=>({tasks:st.tasks.map(t=>t.id===id?{...t,...p}:t)}));const nt=g().tasks.find(t=>t.id===id);if(nt)remote.upsertTask(nt)},
- delTask:id=>{s(st=>({tasks:st.tasks.filter(t=>t.id!==id)}));remote.deleteTask(id)},
- toggleDark:()=>s(st=>({dark:!st.dark})),
- startFocus:m=>s(st=>({focus:{...st.focus,minutes:m,sessionId:crypto.randomUUID(),endsAt:Date.now()+m*60000,pausedLeft:null}})),
- pauseFocus:()=>s(st=>st.focus.endsAt?{focus:{...st.focus,pausedLeft:Math.max(0,st.focus.endsAt-Date.now()),endsAt:null}}:st),
- resumeFocus:()=>s(st=>st.focus.pausedLeft!=null?{focus:{...st.focus,endsAt:Date.now()+st.focus.pausedLeft,pausedLeft:null}}:st),
- stopFocus:()=>{const f=g().focus;if(!f.sessionId)return // idempotent: no active session, nothing recorded twice
-  const left=f.endsAt!=null?Math.max(0,f.endsAt-Date.now()):(f.pausedLeft??0)
-  const mins=Math.round((f.minutes*60000-left)/60000)
-  if(mins>=1)remote.addSession(f.sessionId,mins)
-  s({focus:{...f,sessionId:null,endsAt:null,pausedLeft:null,sessions:mins>=1?[...f.sessions,{id:f.sessionId,at:Date.now(),minutes:mins}]:f.sessions}})}
-}),{name:'lanila-tb',version:2,storage:createJSONStorage(()=>idb),
- migrate:(p:any)=>({...p,focus:{...F0,sessions:(p?.focus?.sessions??[]).map((x:any,i:number)=>({id:x.id??`legacy-${i}`,at:x.at,minutes:x.minutes}))}})}))
+ delTask:id=>{ // policy: linked time blocks are KEPT and only unlinked (DB: on delete set null)
+  s(st=>({tasks:st.tasks.filter(t=>t.id!==id),blocks:st.blocks.map(b=>b.taskId===id?{...b,taskId:undefined}:b)}));remote.deleteTask(id)},
+ startSession:o=>{const f=g().focus;if(f.active)return;s({focus:{...f,summary:null,active:startActive(o,f.settings,Date.now())}})},
+ pauseFocus:()=>{const f=g().focus,a=f.active;if(!a||a.endsAt==null)return;s({focus:{...f,active:{...a,pausedLeftMs:remainingMs(a,Date.now()),endsAt:null}}})},
+ resumeFocus:()=>{const f=g().focus,a=f.active;if(!a||a.pausedLeftMs==null)return;s({focus:{...f,active:{...a,endsAt:Date.now()+a.pausedLeftMs,pausedLeftMs:null}}})},
+ resetFocus:()=>{const f=g().focus;if(f.active)s({focus:{...f,active:null}})}, // discards without recording
+ endSession:()=>{const r=endEarly(g().focus,Date.now());if(!r)return null;s({focus:r.focus});if(r.recorded)remote.upsertSession(r.recorded);return {recorded:r.recorded,elapsedSec:r.elapsedSec}},
+ completeActive:()=>{const r=completeIfDue(g().focus,Date.now());if(r.focus!==g().focus)s({focus:r.focus});if(r.session)remote.upsertSession(r.session);return r.session},
+ dismissSummary:()=>s(st=>({focus:{...st.focus,summary:null}})),
+ setFocusSettings:p=>s(st=>({focus:{...st.focus,settings:{...st.focus.settings,...p}}}))
+}),{name:'lanila-tb',version:3,storage:createJSONStorage(()=>idb),
+ migrate:(p:any)=>{const old=p?.focus??{};return {...p,focus:{sessions:(old.sessions??[]).map((x:any,i:number)=>x.status?x:legacySession(x,i))}}},
+ merge:(p:any,c)=>({...c,...(p??{}),focus:{...c.focus,...(p?.focus??{}),active:sanitizeActive(p?.focus?.active),settings:{...DEFAULT_SETTINGS,...(p?.focus?.settings??{})}}})}))

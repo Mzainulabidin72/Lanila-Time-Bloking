@@ -25,7 +25,7 @@ export function AuthProvider({children}:{children:ReactNode}){
  const api:Ctx={user,loading,dataReady,syncError,
   async signIn(email,password){try{const {error}=await supabase!.auth.signInWithPassword({email,password})
    if(!error)return null;if(/invalid login/i.test(error.message))return 'Email atau kata sandi salah';if(/not confirmed/i.test(error.message))return 'Email belum diverifikasi. Cek kotak masukmu.';return generic}catch{return generic}},
-  async signUp(name,email,password){try{const {data,error}=await supabase!.auth.signUp({email,password,options:{data:{full_name:name}}})
+  async signUp(name,email,password){try{const {data,error}=await supabase!.auth.signUp({email,password,options:{data:{full_name:name},emailRedirectTo:`${window.location.origin}/auth/callback`}})
    if(error)return {error:/registered|exists/i.test(error.message)?'Email sudah terdaftar':generic,verify:false}
    if(data.user&&data.user.identities?.length===0)return {error:'Email sudah terdaftar',verify:false}
    return {error:null,verify:!data.session}}catch{return {error:generic,verify:false}}},
@@ -33,7 +33,7 @@ export function AuthProvider({children}:{children:ReactNode}){
   async resetPassword(email){try{await supabase!.auth.resetPasswordForEmail(email,{redirectTo:`${window.location.origin}/reset-password`})}catch{/* generic success shown regardless */}},
   async updatePassword(password){try{const {error}=await supabase!.auth.updateUser({password});return error?generic:null}catch{return generic}}}
  return <C.Provider value={api}>{children}</C.Provider>}
-const Loading=()=><p role="status" className="p-8 text-sm text-slate-500">Memuat…</p>
+const Loading=()=><p role="status" className="p-8 text-sm text-muted">Memuat…</p>
 export function Protected(){const {user,loading,dataReady}=useAuth();const loc=useLocation()
  if(loading||(isCloud&&user&&!dataReady))return <Loading/>
  if(isCloud&&!user)return <Navigate to="/login" replace state={{from:loc.pathname+loc.search}}/>

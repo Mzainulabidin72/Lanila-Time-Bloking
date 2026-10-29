@@ -1,4 +1,4 @@
-export interface Block{id:string;title:string;date:string;start:string;end:string;category:string;done:boolean;taskId?:string}
+export interface Block{id:string;title:string;date:string;start:string;end:string;category:string;done:boolean;taskId?:string;description?:string;notes?:string;priority?:'low'|'mid'|'high'}
 export const toMin=(t:string)=>{const[h,m]=t.split(':').map(Number);return h*60+m}
 export const duration=(b:Pick<Block,'start'|'end'>)=>toMin(b.end)-toMin(b.start)
 export function validateBlock(b:Pick<Block,'date'|'start'|'end'>):string|null{
