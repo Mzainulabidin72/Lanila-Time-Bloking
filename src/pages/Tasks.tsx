@@ -11,11 +11,11 @@ import TaskRow from '../components/tasks/TaskRow'
 import TaskDetail from '../components/tasks/TaskDetail'
 import ScheduleDialog from '../components/tasks/ScheduleDialog'
 export default function Tasks(){
- const {tasks,blocks,addTask,setTask,delTask}=useStore();const toast=useToast();const today=todayStr()
+ const {tasks,blocks,projects,addTask,setTask,delTask}=useStore();const toast=useToast();const today=todayStr()
  const [f,setF]=useState<Filters>(DEFAULT_FILTERS);const [sort,setSort]=useState<SortKey>('pr');const [mode,setMode]=useState<GroupMode>('list');const [quick,setQuick]=useState('')
  const [draft,setDraft]=useState<TaskDraft|null>(null);const [formOpen,setFormOpen]=useState(false);const [detail,setDetail]=useState<string|null>(null);const [sched,setSched]=useState<Task|null>(null);const [del,setDel]=useState<Task|null>(null)
  const m=metrics(tasks,today),list=sortTasks(applyFilters(tasks,f,today),sort),groups=groupTasks(list,mode,today),empty=emptyInfo(f,tasks.length)
- const filtersOn=!!(f.q||f.priority||f.due||f.status!=='active')
+ const filtersOn=!!(f.q||f.priority||f.due||f.project||f.status!=='active')
  const bc=new Map<string,number>();blocks.forEach(b=>{if(b.taskId)bc.set(b.taskId,(bc.get(b.taskId)??0)+1)})
  const openNew=()=>{setDraft({});setFormOpen(true)},edit=(t:Task)=>{setDetail(null);setDraft(t);setFormOpen(true)}
  const toggle=(t:Task)=>{setTask(t.id,{status:t.status==='done'?'todo':'done'});toast(t.status==='done'?'Tugas dibuka kembali':'Tugas selesai')}
@@ -34,6 +34,7 @@ export default function Tasks(){
    <select aria-label="Filter status" className="inp w-auto" value={f.status} onChange={e=>sel('status',e.target.value as Filters['status'])}><option value="active">Aktif</option><option value="all">Semua</option><option value="open">Belum selesai</option><option value="doing">Sedang dikerjakan</option><option value="done">Selesai</option><option value="overdue">Terlambat</option><option value="today">Jatuh tempo hari ini</option></select>
    <select aria-label="Filter prioritas" className="inp w-auto" value={f.priority} onChange={e=>sel('priority',e.target.value as Filters['priority'])}><option value="">Semua prioritas</option><option value="high">Tinggi</option><option value="mid">Sedang</option><option value="low">Rendah</option></select>
    <select aria-label="Filter tenggat" className="inp w-auto" value={f.due} onChange={e=>sel('due',e.target.value as Filters['due'])}><option value="">Semua tenggat</option><option value="week">7 hari ke depan</option><option value="none">Tanpa tenggat</option></select>
+   <select aria-label="Filter proyek" className="inp w-auto max-w-[11rem]" value={f.project} onChange={e=>sel('project',e.target.value)}><option value="">Semua proyek</option><option value="none">Tanpa proyek</option>{projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select>
    <select aria-label="Urutkan" className="inp w-auto" value={sort} onChange={e=>setSort(e.target.value as SortKey)}><option value="pr">Urut: Prioritas</option><option value="due">Urut: Tenggat</option><option value="new">Urut: Terbaru</option><option value="alpha">Urut: Judul A–Z</option><option value="est">Urut: Durasi terpendek</option></select>
    <select aria-label="Tampilan" className="inp w-auto" value={mode} onChange={e=>setMode(e.target.value as GroupMode)}><option value="list">Tampilan: Daftar</option><option value="priority">Kelompok: Prioritas</option><option value="due">Kelompok: Tenggat</option></select>
    {filtersOn&&<Button variant="ghost" onClick={()=>setF(DEFAULT_FILTERS)}>Reset Filter</Button>}</div>
@@ -41,7 +42,7 @@ export default function Tasks(){
   {list.length===0?(empty.kind==='none'?<EmptyState title={empty.title} text={empty.text} action={<div className="flex flex-col items-center gap-2"><ClipboardList size={28} className="text-accent" aria-hidden/><Button onClick={openNew}>Tambah Tugas</Button></div>}/>
    :<EmptyState title={empty.title} text={empty.text} action={filtersOn?<Button variant="ghost" onClick={()=>setF(DEFAULT_FILTERS)}>Reset Filter</Button>:undefined}/>)
   :groups.map(g=><section key={g.key} aria-label={g.label||'Daftar tugas'}>{g.label&&<h2 className="mb-1 mt-3 text-sm font-semibold">{g.label} <span className="font-normal text-muted">({g.items.length})</span></h2>}
-   <ul className="space-y-2">{g.items.map(t=><TaskRow key={t.id} task={t} today={today} blockCount={bc.get(t.id)??0} onToggle={()=>toggle(t)} onOpen={()=>setDetail(t.id)} onSchedule={()=>setSched(t)} onEdit={()=>edit(t)} onDup={()=>dup(t)} onDelete={()=>setDel(t)} onStart={()=>{setTask(t.id,{status:'doing'});toast('Tugas sedang dikerjakan')}}/>)}</ul></section>)}
+   <ul className="space-y-2">{g.items.map(t=><TaskRow key={t.id} task={t} project={projects.find(p=>p.id===t.projectId)} today={today} blockCount={bc.get(t.id)??0} onToggle={()=>toggle(t)} onOpen={()=>setDetail(t.id)} onSchedule={()=>setSched(t)} onEdit={()=>edit(t)} onDup={()=>dup(t)} onDelete={()=>setDel(t)} onStart={()=>{setTask(t.id,{status:'doing'});toast('Tugas sedang dikerjakan')}}/>)}</ul></section>)}
   <TaskForm open={formOpen} draft={draft} onClose={()=>setFormOpen(false)}/>
   <TaskDetail task={tasks.find(t=>t.id===detail)??null} onClose={()=>setDetail(null)} onEdit={edit} onSchedule={t=>{setDetail(null);setSched(t)}} onDelete={t=>{setDetail(null);setDel(t)}}/>
   <ScheduleDialog task={sched} onClose={()=>setSched(null)}/>

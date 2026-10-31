@@ -16,7 +16,7 @@ export default function ScheduleDialog({task,onClose}:{task:Task|null;onClose:()
   const err=!(dur>0)?'Durasi harus lebih dari 0 menit':endMin>1439?'Blok melewati tengah malam; kurangi durasi atau majukan waktu mulai':validateBlock({date,start,end})
   const conflicts=err?[]:findConflicts(blocks,{id:blockId.current,date,start,end}),can=!err&&(conflicts.length===0||ack)&&!busy
   const submit=(e:React.FormEvent)=>{e.preventDefault();if(!can)return;setBusy(true)
-   try{const b:Block={id:blockId.current,title:task.title,date,start,end,category:cat,done:false,taskId:task.id,priority:task.priority,description:task.description};addBlock(b);toast('Tugas dijadwalkan');onClose()}
+   try{const b:Block={id:blockId.current,title:task.title,date,start,end,category:cat,done:false,taskId:task.id,priority:task.priority,description:task.description,projectId:task.projectId};addBlock(b);toast('Tugas dijadwalkan');onClose()}
    catch{toast('Gagal menjadwalkan. Tugasmu tidak berubah, coba lagi.','err');setBusy(false)}}
   return <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2" noValidate>
    <p className="text-sm sm:col-span-2"><b>{task.title}</b><span className="block text-xs text-muted">Estimasi tugas: {task.est} menit. Menjadwalkan tidak menandai tugas selesai.</span></p>

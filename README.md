@@ -5,11 +5,11 @@ This archive was generated in an environment WITHOUT network access: `npm instal
 ## Commands
 npm install, npm run dev, npm run typecheck, npm test, npm run build, npm run preview
 ## Implemented
-Overview (metrics derived from state), Jadwal Saya (day view, validation, conflict warning without overwriting), Tugas, Mode Fokus (timestamp-based), Integrasi (honest status), product switcher from src/registry/products.ts + env URLs, dark mode, IndexedDB persistence, unit tests for validation/overlap/timer math, Supabase cloud mode (login, write-through sync of blocks/tasks/focus sessions) with migration supabase/migrations/001_tb_core.sql.
+Overview (metrics derived from state), Jadwal Saya (day view, validation, conflict warning without overwriting), Tugas, Mode Fokus (timestamp-based), dark mode, IndexedDB persistence, unit tests for validation/overlap/timer math, Supabase cloud mode (login, write-through sync of blocks/tasks/focus sessions) with migration supabase/migrations/001_tb_core.sql.
 ## Not yet implemented
 Week/month/agenda views, drag/resize, recurrence, projects, routines, analytics, category CRUD, settings page, integration event layer, remaining tables, English localization, seed/demo data, favicon/app-icon set beyond a cropped logo mark.
 ## Env
-Copy .env.example to .env. Empty product URLs show "perlu konfigurasi". Never put a service-role key in client code.
+Copy .env.example to .env and fill only the Supabase variables. Never put a service-role key in client code.
 
 ## Supabase (shared Lanila project)
 Tables use the `tb_` prefix and reference `auth.users`; existing tables (profiles, categories, aset_*, lh_*, ...) are NOT touched.
@@ -24,8 +24,9 @@ Verify RLS after applying: sign in as two users and confirm each sees only their
 Routes: /login, /register, /forgot-password, /reset-password. Semua route privat dilindungi (redirect ke /login dan kembali ke tujuan semula). Sesi dikelola SDK Supabase (tidak ada token manual di localStorage). Logout membersihkan data aplikasi di memori dan IndexedDB.
 Setup: di Supabase Dashboard > Authentication > URL Configuration, tambahkan `http://localhost:5173/reset-password` dan URL produksimu ke Redirect URLs. Jalankan migrasi 001 lalu 002 (`002_tb_task_due.sql`, hanya menambah kolom).
 Checkbox "ingat saya" sengaja tidak ada: SDK Supabase menyimpan sesi persisten secara default.
-## Audit akun bersama (yang terverifikasi dan tidak)
-Terlihat dari screenshot Table Editor: tabel `aset_*`, `lh_*`, `transactions`, `wallets`, `profiles`, dll berada dalam SATU project Supabase, sehingga `auth.users` dipakai bersama. BELUM terverifikasi: apakah frontend Buku Kas/Habits/Asset memakai URL+anon key yang sama, bagaimana `profiles` terhubung ke `auth.users`, dan Wedding Planner (tidak ada tabelnya di screenshot). Halaman Integrasi hanya memeriksa bahwa tabel bisa dibaca; tidak ada sinkronisasi event.
+## Akun bersama
+Tabel `aset_*`, `lh_*`, `transactions`, dll. terlihat berada dalam satu project Supabase, sehingga `auth.users` dipakai bersama. Belum terverifikasi: apakah aplikasi Lanila lain memakai URL + anon key yang sama dan bagaimana `profiles` terhubung ke `auth.users`. Time Blocking sendiri berdiri mandiri (tidak ada halaman/tautan integrasi).
+
 ## Belum dikerjakan
 Toast, jeda istirahat Pomodoro, kategori kustom, impor data lokal lama ke cloud, antrean offline, dropdown/profil di mobile selain menu akun, uji integrasi RLS otomatis.
 
@@ -57,3 +58,14 @@ Notifikasi/suara: opsional, izin notifikasi HANYA diminta saat toggle diklik. Su
 Skema: jalankan `005_tb_focus_sessions.sql` (hanya menambah kolom). Sesi lama tetap utuh (dianggap fokus selesai). `project_id` belum ada karena belum ada tabel proyek. Sesi lokal format lama dimigrasikan otomatis; sesi yang sedang berjalan di versi lama tidak dipulihkan.
 Sidebar: bagian "Ekosistem Lanila" kini bisa dilipat dan sidebar bisa digulir agar kontrol bawah tidak terpotong.
 Batasan: waktu bergantung pada jam sistem perangkat; belum ada integrasi Habits; notifikasi tidak muncul bila browser benar-benar ditutup.
+
+## v0.7
+Halaman Integrasi Lanila (`/integrasi`), pemeriksaan ekosistem, registri produk, dan bagian "Ekosistem Lanila" di sidebar dihapus. `/integrasi` kini diarahkan ke Ringkasan lewat rute catch-all. Migrasi dan tabel database TIDAK dihapus.
+
+## Proyek, Rutinitas, Analitik (v0.8)
+Sidebar: Ringkasan, Jadwal Saya, Tugas, Proyek, Mode Fokus, Rutinitas, Analitik; Pengaturan di bagian terpisah di bawah garis pemisah. Menu Integrasi/ekosistem tidak dikembalikan.
+Proyek: buat, ubah, arsipkan/aktifkan kembali (tidak ada hapus, jadi tugas dan blok tidak pernah yatim). Tugas dan blok dihubungkan lewat field "Proyek" (blok juga mewarisi proyek dari tugasnya). Progres = tugas selesai / total tugas proyek (tanpa tugas = "belum ada tugas", bukan 0%). Status: Diarsipkan > Selesai (semua tugas selesai) > Terlambat (lewat tenggat) > Aktif. "Terjadwal" = total durasi blok proyek; "Fokus aktual" = sesi fokus yang dipilih untuk tugas proyek. Filter proyek tersedia di Tugas dan Jadwal Saya.
+Rutinitas: template berisi blok waktu + hari berlaku (informasi, bukan pembatas). Terapkan ke tanggal: pratinjau bentrok DULU; blok bentrok tidak dicentang secara default dan harus dicentang eksplisit; jadwal lama tidak pernah ditimpa/dihapus. Id blok dibuat sekali per dialog sehingga ulang-klik tidak menggandakan. Menghapus rutinitas tidak menghapus blok yang sudah diterapkan.
+Analitik (tanpa library grafik): filter 7 hari/30 hari/bulan ini/kustom (maks 366 hari). Terencana = jumlah durasi blok; Selesai (terjadwal) = durasi blok yang ditandai selesai (BUKAN waktu terukur); Fokus Aktual = durasi nyata sesi fokus; Tugas Selesai = tugas dengan tenggat dalam rentang (tugas belum menyimpan tanggal selesai); distribusi per kategori/proyek memakai durasi blok. Tanpa data: pesan kosong, tidak ada angka karangan. Grafik harian punya tabel data sebagai alternatif aksesibel.
+Skema: jalankan `006_tb_projects_routines.sql` (tabel tb_projects dan tb_routines + kolom project_id nullable di tb_tasks/tb_time_blocks, RLS, FK komposit satu pemilik). Blok rutinitas disimpan sebagai jsonb di tb_routines. Hanya menambah struktur.
+Catatan: ikon `chart-no-axes-combined` memerlukan lucide-react versi terbaru; bila import gagal, naikkan versi lucide-react di package.json.

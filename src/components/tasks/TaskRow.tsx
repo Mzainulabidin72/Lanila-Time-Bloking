@@ -14,7 +14,7 @@ function RowMenu({items}:{items:Item[]}){
   document.addEventListener('mousedown',d);document.addEventListener('keydown',k);return()=>{document.removeEventListener('mousedown',d);document.removeEventListener('keydown',k)}},[open])
  return <div ref={r} className="relative"><button type="button" aria-label="Aksi lainnya" title="Aksi lainnya" aria-haspopup="menu" aria-expanded={open} onClick={()=>setOpen(!open)} className="rounded-lg p-2 text-muted hover:bg-elevated focus-visible:outline focus-visible:outline-2"><MoreVertical size={16}/></button>
   {open&&<div role="menu" className="absolute right-0 z-20 mt-1 w-48 rounded-xl border border-line bg-surface p-1 shadow-lg">{items.map(i=><button key={i.label} role="menuitem" type="button" onClick={()=>{setOpen(false);i.onClick()}} className={`flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm hover:bg-elevated ${i.danger?'text-red-600 dark:text-red-400':''}`}>{i.icon}{i.label}</button>)}</div>}</div>}
-export default function TaskRow({task:t,today,blockCount,onToggle,onOpen,onSchedule,onEdit,onDup,onDelete,onStart}:{task:Task;today:string;blockCount:number;onToggle:()=>void;onOpen:()=>void;onSchedule:()=>void;onEdit:()=>void;onDup:()=>void;onDelete:()=>void;onStart:()=>void}){
+export default function TaskRow({task:t,today,blockCount,onToggle,onOpen,onSchedule,onEdit,onDup,onDelete,onStart,project}:{project?:{name:string;color:string};task:Task;today:string;blockCount:number;onToggle:()=>void;onOpen:()=>void;onSchedule:()=>void;onEdit:()=>void;onDup:()=>void;onDelete:()=>void;onStart:()=>void}){
  const done=t.status==='done',od=isOverdue(t,today),dt=isDueToday(t,today),d=t.due?format(parseISO(t.due),'d MMM',{locale:idl}):null
  const items:Item[]=[{label:'Ubah',icon:<Pencil size={14}/>,onClick:onEdit},...(t.status==='todo'||t.status==='inbox'?[{label:'Mulai dikerjakan',icon:<Play size={14}/>,onClick:onStart}]:[]),{label:'Duplikat',icon:<Copy size={14}/>,onClick:onDup},{label:'Hapus',icon:<Trash2 size={14}/>,onClick:onDelete,danger:true}]
  return <li className="card flex items-start gap-3 !p-3">
@@ -25,6 +25,7 @@ export default function TaskRow({task:t,today,blockCount,onToggle,onOpen,onSched
     {t.status==='doing'&&<Badge tone="violet">Sedang dikerjakan</Badge>}{done&&<Badge tone="green">Selesai</Badge>}
     {d&&<span className={`inline-flex items-center gap-1 ${od?'font-medium text-red-600 dark:text-red-400':dt?'font-medium text-amber-700 dark:text-amber-300':''}`}>{od&&<AlertCircle size={12}/>}{od?`Terlambat · ${d}`:dt?'Hari ini':d}</span>}
     <span className="inline-flex items-center gap-1"><Clock size={12}/>{t.est} mnt</span>
+    {project&&<span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full" style={{background:project.color}} aria-hidden/>{project.name}</span>}
     {blockCount>0&&<span className="inline-flex items-center gap-1"><CalendarCheck size={12}/>Terjadwal ({blockCount})</span>}</div></div>
   {!done&&<button type="button" onClick={onSchedule} title="Jadwalkan tugas ini" className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-brand-violet/10 px-2 py-1.5 text-xs font-medium text-accent hover:bg-brand-violet/20 focus-visible:outline focus-visible:outline-2"><CalendarPlus size={14}/>Jadwalkan</button>}
   <RowMenu items={items}/></li>}

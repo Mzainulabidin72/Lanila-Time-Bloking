@@ -1,9 +1,15 @@
 import type {Block} from '../lib/time'
 import type {Task} from '../stores/useStore'
-export const blockToRow=(b:Block)=>({id:b.id,title:b.title,block_date:b.date,start_time:b.start,end_time:b.end,category:b.category,done:b.done,task_id:b.taskId??null,description:b.description??null,notes:b.notes??null,priority:b.priority??'mid'})
-export const rowToBlock=(r:any):Block=>({id:r.id,title:r.title,date:r.block_date,start:String(r.start_time).slice(0,5),end:String(r.end_time).slice(0,5),category:r.category,done:r.done,taskId:r.task_id??undefined,description:r.description??undefined,notes:r.notes??undefined,priority:r.priority??'mid'})
-export const taskToRow=(t:Task)=>({id:t.id,title:t.title,status:t.status,priority:t.priority,est_minutes:t.est,due_date:t.due??null,description:t.description??null,notes:t.notes??null})
-export const rowToTask=(r:any):Task=>({id:r.id,title:r.title,status:r.status,priority:r.priority,est:r.est_minutes??30,due:r.due_date??undefined,description:r.description??undefined,notes:r.notes??undefined,createdAt:r.created_at?Date.parse(r.created_at):undefined})
+export const blockToRow=(b:Block)=>({id:b.id,title:b.title,block_date:b.date,start_time:b.start,end_time:b.end,category:b.category,done:b.done,task_id:b.taskId??null,description:b.description??null,notes:b.notes??null,priority:b.priority??'mid',project_id:b.projectId??null})
+export const rowToBlock=(r:any):Block=>({id:r.id,title:r.title,date:r.block_date,start:String(r.start_time).slice(0,5),end:String(r.end_time).slice(0,5),category:r.category,done:r.done,taskId:r.task_id??undefined,description:r.description??undefined,notes:r.notes??undefined,priority:r.priority??'mid',projectId:r.project_id??undefined})
+export const taskToRow=(t:Task)=>({id:t.id,title:t.title,status:t.status,priority:t.priority,est_minutes:t.est,due_date:t.due??null,project_id:t.projectId??null,description:t.description??null,notes:t.notes??null})
+export const rowToTask=(r:any):Task=>({id:r.id,title:r.title,status:r.status,priority:r.priority,est:r.est_minutes??30,due:r.due_date??undefined,description:r.description??undefined,notes:r.notes??undefined,createdAt:r.created_at?Date.parse(r.created_at):undefined,projectId:r.project_id??undefined})
 import type {FocusSession} from '../lib/focusTimer'
 export const sessionToRow=(s:FocusSession)=>({id:s.id,session_type:s.type,status:s.status,task_id:s.taskId??null,objective:s.objective??null,planned_seconds:s.plannedSec,actual_seconds:s.actualSec,started_at:new Date(s.startedAt).toISOString(),ended_at:new Date(s.endedAt).toISOString(),minutes:Math.max(1,Math.round(s.actualSec/60))})
 export const rowToSession=(r:any):FocusSession=>{const actual=r.actual_seconds??(r.minutes??0)*60,endedAt=Date.parse(r.ended_at);return {id:r.id,type:r.session_type??'focus',status:r.status??'completed',taskId:r.task_id??undefined,objective:r.objective??undefined,plannedSec:r.planned_seconds??actual,actualSec:actual,startedAt:r.started_at?Date.parse(r.started_at):endedAt-actual*1000,endedAt}}
+import type {Project} from '../lib/projects'
+import type {Routine} from '../lib/routines'
+export const projectToRow=(p:Project)=>({id:p.id,name:p.name,description:p.description??null,color:p.color,status:p.status,deadline:p.deadline??null})
+export const rowToProject=(r:any):Project=>({id:r.id,name:r.name,description:r.description??undefined,color:r.color,status:r.status,deadline:r.deadline??undefined,createdAt:r.created_at?Date.parse(r.created_at):undefined})
+export const routineToRow=(r:Routine)=>({id:r.id,name:r.name,description:r.description??null,weekdays:r.weekdays,blocks:r.blocks})
+export const rowToRoutine=(r:any):Routine=>({id:r.id,name:r.name,description:r.description??undefined,weekdays:r.weekdays??[],blocks:Array.isArray(r.blocks)?r.blocks:[]})

@@ -3,8 +3,8 @@ import type {Task} from '../stores/useStore'
 export type StatusFilter='all'|'active'|'open'|'doing'|'done'|'overdue'|'today'
 export type SortKey='pr'|'due'|'new'|'alpha'|'est'
 export type GroupMode='list'|'priority'|'due'
-export interface Filters{q:string;status:StatusFilter;priority:''|Task['priority'];due:''|'none'|'week'}
-export const DEFAULT_FILTERS:Filters={q:'',status:'active',priority:'',due:''}
+export interface Filters{q:string;status:StatusFilter;priority:''|Task['priority'];due:''|'none'|'week';project:string}
+export const DEFAULT_FILTERS:Filters={q:'',status:'active',priority:'',due:'',project:''}
 export const STATUS_LABEL:Record<Task['status'],string>={inbox:'Belum selesai',todo:'Belum selesai',doing:'Sedang dikerjakan',done:'Selesai'}
 const PR={high:0,mid:1,low:2}
 export const isDone=(t:Task)=>t.status==='done'
@@ -19,6 +19,7 @@ export function applyFilters(tasks:Task[],f:Filters,today:string){
  return tasks.filter(t=>{
   if(q&&!(t.title.toLowerCase().includes(q)||(t.description??'').toLowerCase().includes(q)||(t.notes??'').toLowerCase().includes(q)))return false
   if(f.priority&&t.priority!==f.priority)return false
+  if(f.project&&(f.project==='none'?!!t.projectId:t.projectId!==f.project))return false
   if(f.due==='none'&&t.due)return false
   if(f.due==='week'&&!(t.due&&t.due>=today&&t.due<=wk))return false
   switch(f.status){case 'active':return !isDone(t);case 'open':return t.status==='todo'||t.status==='inbox';case 'doing':return t.status==='doing';case 'done':return isDone(t);case 'overdue':return isOverdue(t,today);case 'today':return isDueToday(t,today);default:return true}})}
@@ -42,6 +43,6 @@ export function groupTasks(tasks:Task[],mode:GroupMode,today:string):Group[]{
  return defs.map(([key,label,fn])=>({key,label,items:tasks.filter(fn)})).filter(g=>g.items.length>0)}
 export function emptyInfo(f:Filters,total:number):{title:string;text?:string;kind:'none'|'nomatch'|'status'}{
  if(total===0)return {kind:'none',title:'Belum ada tugas',text:'Tambahkan tugas pertamamu dan atur waktu untuk menyelesaikannya.'}
- if(f.q.trim()||f.priority||f.due)return {kind:'nomatch',title:'Tidak ada tugas yang cocok',text:'Coba ubah kata kunci atau filter.'}
+ if(f.q.trim()||f.priority||f.due||f.project)return {kind:'nomatch',title:'Tidak ada tugas yang cocok',text:'Coba ubah kata kunci atau filter.'}
  const m:Record<StatusFilter,string>={all:'Belum ada tugas.',active:'Semua tugas sudah selesai.',open:'Tidak ada tugas yang belum dikerjakan.',doing:'Belum ada tugas yang sedang dikerjakan.',done:'Belum ada tugas yang selesai.',overdue:'Tidak ada tugas yang terlambat.',today:'Tidak ada tugas yang jatuh tempo hari ini.'}
  return {kind:'status',title:m[f.status]}}

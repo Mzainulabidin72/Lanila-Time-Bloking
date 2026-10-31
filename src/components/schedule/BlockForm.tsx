@@ -5,12 +5,12 @@ import {Block,validateBlock,findConflicts,toMin,fmt} from '../../lib/time'
 import {CATS,PRIORITY_LABEL} from '../../lib/categories'
 import {Button,Field,Modal} from '../ui'
 import {useToast} from '../Toast'
-export interface Draft{id?:string;date:string;start?:string;end?:string;title?:string;category?:string;taskId?:string;priority?:Block['priority'];description?:string;notes?:string;done?:boolean}
-interface F{title:string;date:string;start:string;end:string;category:string;taskId:string;priority:NonNullable<Block['priority']>;description:string;notes:string}
+export interface Draft{id?:string;date:string;start?:string;end?:string;title?:string;category?:string;taskId?:string;priority?:Block['priority'];description?:string;notes?:string;done?:boolean;projectId?:string}
+interface F{title:string;date:string;start:string;end:string;category:string;taskId:string;priority:NonNullable<Block['priority']>;description:string;notes:string;project:string}
 export default function BlockForm({open,draft,onClose}:{open:boolean;draft:Draft|null;onClose:()=>void}){
- const {blocks,tasks,addBlock,updateBlock}=useStore();const toast=useToast()
+ const {blocks,tasks,projects,addBlock,updateBlock}=useStore();const toast=useToast()
  const [f,setF]=useState<F|null>(null);const [ack,setAck]=useState(false);const [busy,setBusy]=useState(false);const [touched,setTouched]=useState(false)
- useEffect(()=>{if(open&&draft){const s=draft.start??'09:00';setF({title:draft.title??'',date:draft.date,start:s,end:draft.end??fmt(Math.min(toMin(s)+60,1439)),category:draft.category??CATS[0],taskId:draft.taskId??'',priority:draft.priority??'mid',description:draft.description??'',notes:draft.notes??''});setAck(false);setBusy(false);setTouched(false)}},[open,draft])
+ useEffect(()=>{if(open&&draft){const s=draft.start??'09:00';setF({title:draft.title??'',date:draft.date,start:s,end:draft.end??fmt(Math.min(toMin(s)+60,1439)),category:draft.category??CATS[0],taskId:draft.taskId??'',priority:draft.priority??'mid',description:draft.description??'',notes:draft.notes??'',project:draft.projectId??''});setAck(false);setBusy(false);setTouched(false)}},[open,draft])
  const editing=!!draft?.id
  const body=(()=>{if(!f)return null
   const titleErr=!f.title.trim()?'Judul blok wajib diisi':null,timeErr=validateBlock(f)
@@ -18,7 +18,7 @@ export default function BlockForm({open,draft,onClose}:{open:boolean;draft:Draft
   const can=!titleErr&&!timeErr&&(conflicts.length===0||ack)&&!busy
   const set=<K extends keyof F>(k:K,v:F[K])=>setF({...f,[k]:v})
   const submit=(e:React.FormEvent)=>{e.preventDefault();setTouched(true);if(!can)return;setBusy(true)
-   const nb:Block={id:draft?.id??crypto.randomUUID(),title:f.title.trim(),date:f.date,start:f.start,end:f.end,category:f.category,done:draft?.done??false,taskId:f.taskId||undefined,priority:f.priority,description:f.description.trim()||undefined,notes:f.notes.trim()||undefined}
+   const nb:Block={id:draft?.id??crypto.randomUUID(),title:f.title.trim(),date:f.date,start:f.start,end:f.end,category:f.category,done:draft?.done??false,taskId:f.taskId||undefined,priority:f.priority,description:f.description.trim()||undefined,notes:f.notes.trim()||undefined,projectId:f.project||undefined}
    if(editing)updateBlock(nb);else addBlock(nb);toast(editing?'Blok diperbarui':'Blok ditambahkan');setBusy(false);onClose()}
   return <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2" noValidate>
    <div className="sm:col-span-2"><Field label="Judul blok" id="f-title" error={touched?titleErr:null}><input id="f-title" className="inp" autoFocus value={f.title} onChange={e=>set('title',e.target.value)} aria-invalid={touched&&!!titleErr}/></Field></div>
@@ -27,7 +27,8 @@ export default function BlockForm({open,draft,onClose}:{open:boolean;draft:Draft
    <Field label="Waktu mulai" id="f-start"><input id="f-start" type="time" className="inp" value={f.start} onChange={e=>set('start',e.target.value)}/></Field>
    <Field label="Waktu selesai" id="f-end" error={timeErr}><input id="f-end" type="time" className="inp" value={f.end} onChange={e=>set('end',e.target.value)} aria-invalid={!!timeErr}/></Field>
    <Field label="Prioritas" id="f-pr"><select id="f-pr" className="inp" value={f.priority} onChange={e=>set('priority',e.target.value as F['priority'])}>{(['low','mid','high'] as const).map(p=><option key={p} value={p}>{PRIORITY_LABEL[p]}</option>)}</select></Field>
-   <Field label="Tugas terkait (opsional)" id="f-task"><select id="f-task" className="inp" value={f.taskId} onChange={e=>set('taskId',e.target.value)}><option value="">Tanpa tugas</option>{tasks.filter(t=>t.status!=='done'||t.id===f.taskId).map(t=><option key={t.id} value={t.id}>{t.title}</option>)}</select></Field>
+   <Field label="Tugas terkait (opsional)" id="f-task"><select id="f-task" className="inp" value={f.taskId} onChange={e=>{const t=tasks.find(x=>x.id===e.target.value);setF({...f,taskId:e.target.value,project:f.project||t?.projectId||''})}}><option value="">Tanpa tugas</option>{tasks.filter(t=>t.status!=='done'||t.id===f.taskId).map(t=><option key={t.id} value={t.id}>{t.title}</option>)}</select></Field>
+   <div className="sm:col-span-2"><Field label="Proyek (opsional)" id="f-proj"><select id="f-proj" className="inp" value={f.project} onChange={e=>set('project',e.target.value)}><option value="">Tanpa proyek</option>{projects.filter(p=>p.status==='active'||p.id===f.project).map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></Field></div>
    <div className="sm:col-span-2"><Field label="Deskripsi (opsional)" id="f-desc"><textarea id="f-desc" rows={2} className="inp" value={f.description} onChange={e=>set('description',e.target.value)}/></Field></div>
    <div className="sm:col-span-2"><Field label="Catatan (opsional)" id="f-notes"><textarea id="f-notes" rows={2} className="inp" value={f.notes} onChange={e=>set('notes',e.target.value)}/></Field></div>
    {conflicts.length>0&&<div role="alert" className="rounded-xl border border-amber-500 bg-amber-500/10 p-3 text-sm sm:col-span-2"><p className="flex items-center gap-2 font-medium"><AlertTriangle size={16}/>Bentrok dengan {conflicts.length} blok</p>

@@ -3,18 +3,15 @@ import {Link,useNavigate} from 'react-router-dom'
 import {useAuth} from '../lib/auth'
 import {isCloud,supabase} from '../lib/supabase'
 import {isEmail,passwordStrength} from '../lib/validate'
-import {PRODUCTS,CURRENT} from '../registry/products'
 import {Button,Field,PasswordInput} from '../components/ui'
 import ThemeToggle from '../components/ThemeToggle'
 function Layout({title,sub,children}:{title:string;sub:string;children:ReactNode}){
- const others=PRODUCTS.filter(p=>p.id!==CURRENT&&p.url)
  return <div className="flex min-h-screen items-center justify-center p-4"><div className="w-full max-w-md"><div className="mb-3 flex justify-end"><ThemeToggle compact/></div><div className="card space-y-4 !p-6 sm:!p-8">
   <div><img src="/lanila-logo.png" alt="Lanila" className="h-9 w-auto"/><p className="mt-1 text-xs font-semibold text-accent">Time Blocking</p></div>
   <div><h1 className="text-2xl font-bold">{title}</h1><p className="text-sm text-muted">{sub}</p></div>
   {!isCloud&&<p role="status" className="rounded-xl bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300">Supabase belum dikonfigurasi (isi VITE_SUPABASE_URL dan VITE_SUPABASE_ANON_KEY). Autentikasi tidak tersedia; aplikasi berjalan di mode lokal. <Link to="/" className="underline">Buka aplikasi</Link></p>}
   {children}</div>
-  <p className="mt-4 text-center text-xs text-muted">Rencanakan waktu. Fokus pada hal penting.</p>
-  {others.length>0&&<p className="mt-4 text-center text-xs text-muted">Aplikasi Lanila lain: {others.map((p,i)=><span key={p.id}>{i>0&&' · '}<a className="underline" href={p.url}>{p.name.replace('Lanila ','')}</a></span>)}<br/>Tiap aplikasi tetap meminta login sendiri.</p>}</div></div>}
+  <p className="mt-4 text-center text-xs text-muted">Rencanakan waktu. Fokus pada hal penting.</p></div></div>}
 const ed=(e:string|null,id:string)=>e?{'aria-invalid':true,'aria-describedby':id+'-e'}:{}
 export function Login(){
  const {signIn}=useAuth();const [email,setEmail]=useState('');const [pw,setPw]=useState('');const [busy,setBusy]=useState(false);const [err,setErr]=useState<string|null>(null);const [t,setT]=useState({e:false,p:false})
