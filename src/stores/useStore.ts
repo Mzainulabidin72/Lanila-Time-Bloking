@@ -6,13 +6,13 @@ import {remote} from '../repositories/remote'
 import type {Project} from '../lib/projects'
 import type {Routine} from '../lib/routines'
 import {FocusState,SessionType,FocusSession,DEFAULT_SETTINGS,FocusSettings,startActive,remainingMs,completeIfDue,endEarly,sanitizeActive,legacySession} from '../lib/focusTimer'
-export interface Task{id:string;title:string;status:'inbox'|'todo'|'doing'|'done';priority:'low'|'mid'|'high';est:number;due?:string;description?:string;notes?:string;createdAt?:number;projectId?:string}
+export interface Task{id:string;title:string;status:'inbox'|'todo'|'doing'|'done';priority:'low'|'mid'|'high';est:number;due?:string;description?:string;notes?:string;createdAt?:number;projectId?:string;startDate?:string}
 export interface Prefs{startHour:number;endHour:number}
 export type Focus=FocusState
 const idb:StateStorage={getItem:async k=>(await get(k))??null,setItem:(k,v)=>set(k,v),removeItem:k=>del(k)}
 const F0:Focus={active:null,summary:null,sessions:[],settings:DEFAULT_SETTINGS}
 interface S{blocks:Block[];tasks:Task[];focus:Focus;prefs:Prefs;projects:Project[];routines:Routine[]
- setPrefs:(p:Prefs)=>void;setData:(d:{blocks:Block[];tasks:Task[];sessions?:FocusSession[];projects?:Project[];routines?:Routine[]})=>void;clearAll:()=>void;addProject:(p:Project)=>void;updateProject:(p:Project)=>void;addRoutine:(r:Routine)=>void;updateRoutine:(r:Routine)=>void;delRoutine:(id:string)=>void
+ setPrefs:(p:Prefs)=>void;setData:(d:{blocks:Block[];tasks:Task[];sessions?:FocusSession[];projects?:Project[];routines?:Routine[]})=>void;clearAll:()=>void;addProject:(p:Project)=>void;updateProject:(p:Project)=>void;delProject:(id:string)=>void;addRoutine:(r:Routine)=>void;updateRoutine:(r:Routine)=>void;delRoutine:(id:string)=>void
  addBlock:(b:Block)=>void;updateBlock:(b:Block)=>void;delBlock:(id:string)=>void;toggleBlock:(id:string)=>void
  addTask:(t:Task)=>void;setTask:(id:string,p:Partial<Task>)=>void;delTask:(id:string)=>void
  startSession:(o:{type:SessionType;taskId?:string;objective?:string})=>void;pauseFocus:()=>void;resumeFocus:()=>void;resetFocus:()=>void
@@ -22,9 +22,12 @@ export const useStore=create<S>()(persist((s,g)=>({
  setPrefs:p=>s({prefs:p}),
  addProject:p=>{const np={...p,createdAt:p.createdAt??Date.now()};s(st=>({projects:st.projects.some(x=>x.id===np.id)?st.projects.map(x=>x.id===np.id?np:x):[...st.projects,np]}));remote.upsertProject(np)},
  updateProject:p=>{s(st=>({projects:st.projects.map(x=>x.id===p.id?p:x)}));remote.upsertProject(p)},
+ delProject:id=>{ // policy: tasks and blocks are KEPT and only unlinked (DB: on delete set null)
+  s(st=>({projects:st.projects.filter(x=>x.id!==id),tasks:st.tasks.map(t=>t.projectId===id?{...t,projectId:undefined}:t),blocks:st.blocks.map(b=>b.projectId===id?{...b,projectId:undefined}:b)}));remote.deleteProject(id)},
  addRoutine:r=>{s(st=>({routines:st.routines.some(x=>x.id===r.id)?st.routines.map(x=>x.id===r.id?r:x):[...st.routines,r]}));remote.upsertRoutine(r)},
  updateRoutine:r=>{s(st=>({routines:st.routines.map(x=>x.id===r.id?r:x)}));remote.upsertRoutine(r)},
- delRoutine:id=>{s(st=>({routines:st.routines.filter(x=>x.id!==id)}));remote.deleteRoutine(id)},
+ delRoutine:id=>{ // applied blocks are KEPT and only unlinked from the routine (DB: on delete set null)
+  s(st=>({routines:st.routines.filter(x=>x.id!==id),blocks:st.blocks.map(b=>b.routineId===id?{...b,routineId:undefined,routineBlockId:undefined}:b)}));remote.deleteRoutine(id)},
  setData:d=>s(st=>({blocks:d.blocks,tasks:d.tasks,focus:d.sessions?{...st.focus,sessions:d.sessions}:st.focus,projects:d.projects??st.projects,routines:d.routines??st.routines})),
  clearAll:()=>s(st=>({blocks:[],tasks:[],projects:[],routines:[],focus:{...F0,settings:st.focus.settings}})),
  addBlock:b=>{s(st=>({blocks:st.blocks.some(x=>x.id===b.id)?st.blocks.map(x=>x.id===b.id?b:x):[...st.blocks,b]}));remote.upsertBlock(b)}, // idempotent: retrying with the same id never duplicates

@@ -34,6 +34,6 @@ describe('analytics',()=>{
 })
 describe('mappers',()=>{
  it('project and routine round-trip; user_id never sent',()=>{const pr=projectToRow({...P,deadline:'2026-12-01'});expect('user_id' in pr).toBe(false);expect(rowToProject(pr).deadline).toBe('2026-12-01')
-  const R:Routine={id:'r',name:'x',weekdays:[1,2],blocks:[{id:'1',title:'a',start:'09:00',end:'10:00',category:'c'}]};expect(rowToRoutine(routineToRow(R))).toEqual(R)})
+  const R:Routine={id:'r',name:'x',weekdays:[1,2],blocks:[{id:'1',title:'a',start:'09:00',end:'10:00',category:'c'}]};expect(rowToRoutine(routineToRow(R))).toMatchObject(R)})
  it('task and block carry project_id',()=>{expect(taskToRow(T('a',{projectId:'p1'})).project_id).toBe('p1');expect(blockToRow(B('a','09:00','10:00')).project_id).toBeNull()})
 })

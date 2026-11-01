@@ -13,7 +13,8 @@ export default function ScheduleDialog({task,onClose}:{task:Task|null;onClose:()
  useEffect(()=>{if(!task)return;const t=todayStr();blockId.current=crypto.randomUUID();const d=task.due&&task.due>=t?task.due:t;setDate(d);setStart(d===t?nextSlot():'09:00');setDur(task.est);setCat(CATS[0]);setAck(false);setBusy(false)},[task])
  const body=(()=>{if(!task)return null
   const endMin=toMin(start)+dur,end=fmt(Math.min(endMin,1439))
-  const err=!(dur>0)?'Durasi harus lebih dari 0 menit':endMin>1439?'Blok melewati tengah malam; kurangi durasi atau majukan waktu mulai':validateBlock({date,start,end})
+  const dup=blocks.some(b=>b.taskId===task.id&&b.date===date&&b.start===start&&b.end===end&&b.id!==blockId.current)
+  const err=!(dur>0)?'Durasi harus lebih dari 0 menit':endMin>1439?'Blok melewati tengah malam; kurangi durasi atau majukan waktu mulai':validateBlock({date,start,end})||(dup?'Tugas ini sudah punya blok di tanggal dan waktu yang sama':null)
   const conflicts=err?[]:findConflicts(blocks,{id:blockId.current,date,start,end}),can=!err&&(conflicts.length===0||ack)&&!busy
   const submit=(e:React.FormEvent)=>{e.preventDefault();if(!can)return;setBusy(true)
    try{const b:Block={id:blockId.current,title:task.title,date,start,end,category:cat,done:false,taskId:task.id,priority:task.priority,description:task.description,projectId:task.projectId};addBlock(b);toast('Tugas dijadwalkan');onClose()}

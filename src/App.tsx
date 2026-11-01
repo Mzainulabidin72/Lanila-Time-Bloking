@@ -38,5 +38,5 @@ export default function App(){
  return <Routes>
   <Route element={<GuestOnly/>}><Route path="/login" element={<Login/>}/><Route path="/register" element={<Register/>}/><Route path="/forgot-password" element={<Forgot/>}/></Route>
   <Route path="/reset-password" element={<Reset/>}/><Route path="/auth/callback" element={<AuthCallback/>}/>
-  <Route element={<Protected/>}><Route element={<Shell/>}><Route index element={<Overview/>}/><Route path="jadwal" element={<Schedule/>}/><Route path="tugas" element={<Tasks/>}/><Route path="fokus" element={<Focus/>}/><Route path="proyek" element={<Projects/>}/><Route path="rutinitas" element={<Routines/>}/><Route path="analitik" element={<Analytics/>}/><Route path="pengaturan" element={<Settings/>}/></Route></Route>
+  <Route element={<Protected/>}><Route element={<Shell/>}><Route index element={<Overview/>}/><Route path="jadwal" element={<Schedule/>}/><Route path="tugas" element={<Tasks/>}/><Route path="fokus" element={<Focus/>}/><Route path="proyek" element={<Projects/>}/><Route path="proyek/:projectId" element={<Projects/>}/><Route path="rutinitas" element={<Routines/>}/><Route path="analitik" element={<Analytics/>}/><Route path="pengaturan" element={<Settings/>}/></Route></Route>
   <Route path="*" element={<Navigate to="/" replace/>}/></Routes>}

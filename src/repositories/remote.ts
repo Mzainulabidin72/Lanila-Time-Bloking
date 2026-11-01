@@ -18,6 +18,7 @@ export const remote={
  upsertBlock:(b:Block)=>{if(supabase)log(supabase.from('tb_time_blocks').upsert(blockToRow(b)))},
  deleteBlock:(id:string)=>{if(supabase)log(supabase.from('tb_time_blocks').delete().eq('id',id))},
  upsertProject:(p:Project)=>{if(supabase)log(supabase.from('tb_projects').upsert(projectToRow(p)))},
+ deleteProject:(id:string)=>{if(supabase)log(supabase.from('tb_projects').delete().eq('id',id))},
  upsertRoutine:(r:Routine)=>{if(supabase)log(supabase.from('tb_routines').upsert(routineToRow(r)))},
  deleteRoutine:(id:string)=>{if(supabase)log(supabase.from('tb_routines').delete().eq('id',id))},
  upsertSession:(x:FocusSession)=>{if(supabase)log(supabase.from('tb_focus_sessions').upsert(sessionToRow(x)))}} // idempotent by id

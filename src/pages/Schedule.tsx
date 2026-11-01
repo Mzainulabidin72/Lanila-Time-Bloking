@@ -1,4 +1,5 @@
 import {useEffect,useState} from 'react'
+import {useSearchParams} from 'react-router-dom'
 import {ChevronLeft,ChevronRight,Plus,Search,X} from 'lucide-react'
 import {addDays,format,parseISO} from 'date-fns'
 import {id as idl} from 'date-fns/locale'
@@ -14,7 +15,7 @@ import BlockDetail from '../components/schedule/BlockDetail'
 const shift=(d:string,n:number)=>format(addDays(parseISO(d),n),'yyyy-MM-dd')
 export default function Schedule(){
  const {blocks,tasks,prefs,projects}=useStore()
- const [date,setDate]=useState(todayStr());const [view,setView]=useState<'day'|'week'>('day')
+ const [sp]=useSearchParams();const [date,setDate]=useState(()=>{const q=sp.get('tanggal');return q&&/^\d{4}-\d{2}-\d{2}$/.test(q)&&!Number.isNaN(Date.parse(q))?q:todayStr()});const [view,setView]=useState<'day'|'week'>('day')
  const [draft,setDraft]=useState<Draft|null>(null);const [formOpen,setFormOpen]=useState(false);const [sel,setSel]=useState<string|null>(null)
  const [q,setQ]=useState('');const [cat,setCat]=useState('');const [tk,setTk]=useState('');const [st,setSt]=useState<'all'|'open'|'done'>('all');const [pj,setPj]=useState('')
  const [now,setNow]=useState(Date.now());useEffect(()=>{const i=setInterval(()=>setNow(Date.now()),60000);return()=>clearInterval(i)},[])
